@@ -5,65 +5,341 @@
     <title>服务器监控系统 - 智能大屏</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background-color: #020617; overflow: hidden; font-family: 'Share Tech Mono', monospace; }
+        body { 
+            margin: 0; 
+            background-color: #ffffff; 
+            overflow: hidden; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Mono', sans-serif;
+            color: #1a1a1a;
+        }
         
         #app-container {
             width: 1920px; height: 1080px;
-            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            background: #ffffff;
             position: absolute; top: 50%; left: 50%;
             transform-origin: center center;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8);
             display: grid;
-            /* 左列宽460px，中间自适应，右列宽460px */
-            grid-template-columns: 460px 1fr 460px;
-            /* 顶部80px，中间自适应，底部340px */
-            grid-template-rows: 80px 1fr 340px;
-            gap: 20px;
-            padding: 20px;
+            grid-template-columns: 380px 1fr 380px;
+            grid-template-rows: 70px 1fr 340px;
+            gap: 16px;
+            padding: 16px;
             box-sizing: border-box;
         }
 
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        .card {
+            background: #f8f8f8;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
             overflow: hidden;
-            display: flex; flex-direction: column;
+            display: flex; 
+            flex-direction: column;
+            transition: all 0.2s ease;
         }
         
-        .panel-header {
-            padding: 10px 20px;
-            background: linear-gradient(90deg, rgba(59,130,246,0.2) 0%, transparent 100%);
-            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-            color: #60a5fa; font-size: 1.2rem; font-weight: bold;
-            display: flex; justify-content: space-between; align-items: center;
+        .card:hover {
+            border-color: #d0d0d0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        
+        .card-header {
+            padding: 12px 16px;
+            background: #fafafa;
+            border-bottom: 1px solid #e5e5e5;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #333;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        }
+
+        .card-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
         }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #999; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .status-badge.online { background: #e6f4ea; color: #137333; }
+        .status-badge.offline { background: #fce8e6; color: #c5221f; }
+
+        .pulse { animation: pulse-dot 2s infinite; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         .alert-item {
-            padding: 10px; border-left: 4px solid #3b82f6;
-            margin-bottom: 8px; background: rgba(0,0,0,0.3);
-            animation: slideIn 0.3s ease-out;
+            padding: 10px 12px;
+            border-left: 3px solid #dadce0;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 0.85rem;
         }
-        .alert-danger { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-        .alert-warning { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-        
-        @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
-        /* 删除按钮的样式 */
+        .alert-item.danger { 
+            border-left-color: #d32f2f;
+            background: #ffebee;
+        }
+        .alert-item.warning { 
+            border-left-color: #f57c00;
+            background: #fff3e0;
+        }
+
+        .host-item {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .host-item:hover {
+            background: #f0f0f0;
+            border-color: #d0d0d0;
+        }
+
+        .host-item.active {
+            background: #e8f0fe;
+            border-color: #1f71ed;
+        }
+
+        .host-item-left {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .host-item-name {
+            font-weight: 500;
+            color: #1a1a1a;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .host-item-ip {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .host-item-stats {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .host-item-stat {
+            text-align: right;
+            font-size: 0.8rem;
+        }
+
         .delete-btn {
-            opacity: 0.6;
+            opacity: 0;
             transition: all 0.2s;
+            cursor: pointer;
+            padding: 4px 6px;
+            color: #999;
+            border-radius: 4px;
         }
+
         .host-item:hover .delete-btn {
             opacity: 1;
+        }
+
+        .delete-btn:hover {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .top-bar {
+            grid-column: 1 / -1;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-bar-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            letter-spacing: -0.02em;
+        }
+
+        .top-bar-right {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .stat-group {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .btn-primary {
+            background: #1f71ed;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #1859c9;
+            box-shadow: 0 2px 8px rgba(31, 113, 237, 0.2);
+        }
+
+        .bottom-info {
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            font-size: 0.85rem;
+            color: #666;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .bottom-info-item {
+            text-align: center;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e5e5;
+            padding: 24px;
+            width: 480px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: #fafafa;
+            color: #1a1a1a;
+            font-family: inherit;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: #ffffff;
+            border-color: #1f71ed;
+            box-shadow: 0 0 0 3px rgba(31, 113, 237, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-cancel {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #d0d0d0;
+            background: #ffffff;
+            color: #1a1a1a;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+            background: #f8f8f8;
+            border-color: #b0b0b0;
+        }
+
+        .btn-submit {
+            flex: 1;
+            padding: 10px 16px;
+            background: #1f71ed;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: #1859c9;
         }
     </style>
 </head>
@@ -71,97 +347,96 @@
 
 <div id="app-container">
     
-    <!-- 1. 顶部通栏 -->
-    <div class="col-span-3 flex justify-between items-center px-6 border-b border-blue-900/50 bg-blue-950/20 rounded-xl">
-        <div class="flex items-center gap-4">
-            <span class="text-4xl">🛸</span>
-            <h1 class="text-4xl text-blue-400 tracking-[0.1em] font-bold shadow-blue-500/50">服务器监控系统</h1>
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <span style="font-size: 1.8rem;">◎</span>
+            <div class="top-bar-title">Server Monitor</div>
         </div>
-        <div class="flex gap-8 text-center">
-            <div>
-                <div class="text-gray-400 text-sm">监控主机数</div>
-                <div class="text-2xl font-bold text-white" id="total-hosts-num">0</div>
+        <div class="top-bar-right">
+            <div class="stat-group">
+                <div class="stat-label">Active Hosts</div>
+                <div class="stat-value" id="total-hosts-num">0</div>
             </div>
-            <div>
-                <div class="text-gray-400 text-sm">系统运行</div>
-                <div class="text-xl text-green-400" id="sys-time">00:00:00</div>
+            <div class="stat-group">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value" id="sys-time" style="font-size: 1rem;">00:00:00</div>
             </div>
-            <button onclick="document.getElementById('addModal').classList.remove('hidden')" 
-                    class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded shadow transition h-10 my-auto">
-                + 管理主机
+            <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="btn-primary">
+                + Add Host
             </button>
         </div>
     </div>
 
-    <!-- 2. 左侧上部：主机列表 -->
-    <div class="glass-panel">
-        <div class="panel-header">
-            <span>📡 主机列表</span>
-            <span class="text-xs text-green-400 animate-pulse">● 实时同步</span>
+    <div class="card">
+        <div class="card-header">
+            <span>Hosts</span>
+            <span class="status-badge online pulse" style="font-size: 0.75rem;">● Sync</span>
         </div>
-        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="host-list">
-            <!-- JS 插入主机项 -->
+        <div class="card-body" id="host-list"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div id="active-host-name" style="font-weight: 600;">Select host</div>
+                <div id="active-host-ip" style="font-size: 0.8rem; color: #999; margin-top: 2px;">---</div>
+            </div>
+        </div>
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 12px;">
+            <div id="gauge-cpu" style="height: 100%;"></div>
+            <div id="gauge-mem" style="height: 100%;"></div>
+            <div id="gauge-disk" style="height: 100%;"></div>
+        </div>
+        <div class="bottom-info">
+            <div class="bottom-info-item">Load (1m): <strong id="val-load1">-</strong></div>
+            <div class="bottom-info-item">Load (5m): <strong id="val-load5">-</strong></div>
+            <div class="bottom-info-item">Uptime: <strong id="val-uptime">-</strong></div>
         </div>
     </div>
 
-    <!-- 3. 中间上部：核心仪表盘 -->
-    <div class="glass-panel relative">
-        <div class="panel-header">
-            <span id="active-host-name">选择左侧主机查看详情</span>
-            <span class="text-sm text-gray-400" id="active-host-ip">---</span>
+    <div class="card">
+        <div class="card-header">
+            Network I/O (MB/s)
         </div>
-        <div class="flex-1 grid grid-cols-3 gap-4 p-4 items-center justify-center">
-            <div class="h-full w-full" id="gauge-cpu"></div>
-            <div class="h-full w-full" id="gauge-mem"></div>
-            <div class="h-full w-full" id="gauge-disk"></div>
-        </div>
-        <div class="absolute bottom-4 left-0 w-full flex justify-around text-center text-gray-400 text-sm">
-            <div>负载(1m): <span class="text-white" id="val-load1">-</span></div>
-            <div>负载(5m): <span class="text-white" id="val-load5">-</span></div>
-            <div>运行时长: <span class="text-blue-300" id="val-uptime">-</span></div>
+        <div style="flex: 1;" id="chart-net"></div>
+        <div style="display: flex; justify-content: space-around; padding: 8px 12px; border-top: 1px solid #e5e5e5; font-size: 0.85rem;">
+            <span style="color: #1f71ed;">↓ Down: <strong id="speed-down">0</strong></span>
+            <span style="color: #d32f2f;">↑ Up: <strong id="speed-up">0</strong></span>
         </div>
     </div>
 
-    <!-- 4. 右侧上部：网络流量 -->
-    <div class="glass-panel">
-        <div class="panel-header">🌊 实时网络 I/O (MB/s)</div>
-        <div class="flex-1 p-2" id="chart-net"></div>
-        <div class="flex justify-between px-6 pb-2 text-xs">
-            <span class="text-green-400">⬇ 下载: <span id="speed-down">0</span></span>
-            <span class="text-blue-400">⬆ 上传: <span id="speed-up">0</span></span>
-        </div>
+    <div class="card">
+        <div class="card-header">Alerts</div>
+        <div class="card-body" id="alert-list"></div>
     </div>
 
-    <!-- 5. 左侧下部：告警情报中心 -->
-    <div class="glass-panel">
-        <div class="panel-header">🚨 告警情报中心</div>
-        <div class="flex-1 overflow-y-auto p-4" id="alert-list"></div>
-    </div>
-
-    <!-- 6. 底部右侧：资源趋势 -->
-    <div class="glass-panel col-span-2">
-        <div class="panel-header">📈 资源趋势追踪 (最近1小时)</div>
-        <div class="flex-1 w-full h-full" id="chart-history"></div>
+    <div class="card" style="grid-column: 2 / -1;">
+        <div class="card-header">Resource Trends (1h)</div>
+        <div style="flex: 1; width: 100%; height: 100%;" id="chart-history"></div>
     </div>
 
 </div>
 
-<!-- 管理模态框 -->
-<div id="addModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center">
-    <div class="bg-slate-800 p-8 rounded-xl border border-blue-500/30 w-[500px]">
-        <h2 class="text-2xl text-blue-400 mb-6 font-bold">➕ 添加/管理主机</h2>
-        <form onsubmit="addHost(event)" class="space-y-4">
-            <input name="ip" placeholder="IP 地址" class="w-full bg-slate-900 border border-slate-700 text-white p-3 rounded" required>
-            <div class="grid grid-cols-2 gap-4">
-                <input name="username" placeholder="SSH 用户名" class="bg-slate-900 border border-slate-700 text-white p-3 rounded" required>
-                <input name="port" type="number" placeholder="端口 (22)" value="22" class="bg-slate-900 border border-slate-700 text-white p-3 rounded">
+<div id="addModal" class="modal hidden">
+    <div class="modal-content">
+        <h2 class="modal-title">Add / Manage Host</h2>
+        <form onsubmit="addHost(event)">
+            <div class="form-group">
+                <input name="ip" placeholder="IP Address" class="form-input" required>
             </div>
-            <input name="password" type="password" placeholder="SSH 密码" class="w-full bg-slate-900 border border-slate-700 text-white p-3 rounded" required>
-            <input name="name" placeholder="主机别名 (可选)" class="w-full bg-slate-900 border border-slate-700 text-white p-3 rounded">
-            
-            <div class="pt-4 flex gap-4">
-                <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="flex-1 py-3 text-gray-400 hover:text-white">取消</button>
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded">部署 Agent</button>
+            <div class="form-row">
+                <input name="username" placeholder="SSH User" class="form-input" required>
+                <input name="port" type="number" placeholder="Port" value="22" class="form-input">
+            </div>
+            <div class="form-group">
+                <input name="password" type="password" placeholder="SSH Password" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <input name="name" placeholder="Hostname (optional)" class="form-input">
+            </div>
+            <div class="modal-buttons">
+                <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="btn-cancel">Cancel</button>
+                <button type="submit" class="btn-submit">Deploy Agent</button>
             </div>
         </form>
     </div>
@@ -182,56 +457,53 @@
     const API = '/api';
     let currentHostId = null;
     let charts = {};
-    // --- ECharts 初始化 ---
+    
     function initCharts() {
         const gaugeOption = (color, title) => ({
             series: [{
                 type: 'gauge', radius: '90%',
-                axisLine: { lineStyle: { width: 10, color: [[1, 'rgba(255,255,255,0.1)']] } },
+                axisLine: { lineStyle: { width: 10, color: [[1, '#e5e5e5']] } },
                 progress: { show: true, width: 10, itemStyle: { color: color } },
                 axisLabel: { show: false }, axisTick: { show: false }, splitLine: { show: false },
                 pointer: { length: '60%', width: 5, itemStyle: { color: color } },
-                detail: { valueAnimation: true, fontSize: 30, color: '#fff', formatter: '{value}%', offsetCenter: [0, '70%'] },
-                title: { show: true, offsetCenter: [0, '110%'], fontSize: 16, color: '#94a3b8' },
+                detail: { valueAnimation: true, fontSize: 28, color: '#1a1a1a', formatter: '{value}%', offsetCenter: [0, '70%'] },
+                title: { show: true, offsetCenter: [0, '110%'], fontSize: 14, color: '#999' },
                 data: [{ value: 0, name: title }]
             }]
         });
 
         charts.cpu = echarts.init(document.getElementById('gauge-cpu'));
-        charts.cpu.setOption(gaugeOption('#3b82f6', 'CPU'));
+        charts.cpu.setOption(gaugeOption('#1f71ed', 'CPU'));
         charts.mem = echarts.init(document.getElementById('gauge-mem'));
-        charts.mem.setOption(gaugeOption('#8b5cf6', '内存'));
+        charts.mem.setOption(gaugeOption('#7c3aed', 'Memory'));
         charts.disk = echarts.init(document.getElementById('gauge-disk'));
-        charts.disk.setOption(gaugeOption('#10b981', '磁盘'));
+        charts.disk.setOption(gaugeOption('#059669', 'Disk'));
 
         charts.net = echarts.init(document.getElementById('chart-net'));
         charts.net.setOption({
             grid: { top: 10, bottom: 20, left: 40, right: 10 },
             xAxis: { type: 'category', show: false },
-            yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1e293b' } }, axisLabel: { color: '#64748b' } },
+            yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } }, axisLabel: { color: '#999', fontSize: 11 } },
             series: [
-                { name: 'Down', type: 'line', smooth: true, showSymbol: false, areaStyle: { opacity: 0.2 }, lineStyle: { width: 0 } },
-                { name: 'Up', type: 'line', smooth: true, showSymbol: false, areaStyle: { opacity: 0.2 }, lineStyle: { width: 0 } }
+                { name: 'Down', type: 'line', smooth: true, showSymbol: false, areaStyle: { opacity: 0.1 }, lineStyle: { color: '#1f71ed', width: 2 }, itemStyle: { color: '#1f71ed' } },
+                { name: 'Up', type: 'line', smooth: true, showSymbol: false, areaStyle: { opacity: 0.1 }, lineStyle: { color: '#d32f2f', width: 2 }, itemStyle: { color: '#d32f2f' } }
             ]
         });
 
-        //配置资源趋势图
         charts.hist = echarts.init(document.getElementById('chart-history'));
         charts.hist.setOption({
             tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-            legend: { textStyle: { color: '#94a3b8' }, top: 0 },
+            legend: { textStyle: { color: '#666' }, top: 0, right: 0 },
             grid: { top: 30, bottom: 20, left: 40, right: 20 },
-            xAxis: { type: 'category', boundaryGap: false, axisLabel: { color: '#64748b' } },
-            yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1e293b' } }, axisLabel: { color: '#64748b' } },
+            xAxis: { type: 'category', boundaryGap: false, axisLabel: { color: '#999', fontSize: 11 } },
+            yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } }, axisLabel: { color: '#999', fontSize: 11 } },
             series: [
-                { name: 'CPU', type: 'line', smooth: true, showSymbol: false, itemStyle: { color: '#3b82f6' } },
-                { name: '内存', type: 'line', smooth: true, showSymbol: false, itemStyle: { color: '#8b5cf6' } },
-                { name: '磁盘', type: 'line', smooth: true, showSymbol: false, itemStyle: { color: '#10b981' } }
+                { name: 'CPU', type: 'line', smooth: true, showSymbol: false, lineStyle: { color: '#1f71ed', width: 2 }, areaStyle: { opacity: 0.1 } },
+                { name: 'Memory', type: 'line', smooth: true, showSymbol: false, lineStyle: { color: '#7c3aed', width: 2 }, areaStyle: { opacity: 0.1 } },
+                { name: 'Disk', type: 'line', smooth: true, showSymbol: false, lineStyle: { color: '#059669', width: 2 }, areaStyle: { opacity: 0.1 } }
             ]
         });
     }
-    
-    // --- 核心逻辑 ---
     
     async function loadData() {
         const res = await fetch(`${API}/hosts`);
@@ -244,23 +516,21 @@
         
         hosts.forEach(h => {
             const el = document.createElement('div');
-            el.className = `host-item p-4 rounded-lg cursor-pointer transition flex justify-between items-center border ${currentHostId === h.id ? 'bg-blue-600/20 border-blue-500' : 'bg-slate-800/50 border-slate-700 hover:bg-slate-700'}`;
+            el.className = `host-item ${currentHostId === h.id ? 'active' : ''}`;
             
             el.innerHTML = `
-                <div class="flex-1" onclick="selectHost(${h.id}, '${h.name || h.ip}', '${h.ip}')">
-                    <div class="font-bold text-white text-lg">${h.name || h.ip}</div>
-                    <div class="text-xs text-gray-400">${h.ip}</div>
+                <div class="host-item-left" onclick="selectHost(${h.id}, '${h.name || h.ip}', '${h.ip}')">
+                    <div class="host-item-name">${h.name || h.ip}</div>
+                    <div class="host-item-ip">${h.ip}</div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div class="flex flex-col items-end gap-1">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs ${h.online ? 'text-green-400' : 'text-red-500'}">${h.online ? '运行中' : '离线'}</span>
-                            <span class="w-2 h-2 rounded-full ${h.online ? 'bg-green-500 animate-pulse' : 'bg-red-500'}"></span>
+                <div class="host-item-stats">
+                    <div class="host-item-stat">
+                        <div class="status-badge ${h.online ? 'online' : 'offline'}" style="margin-bottom: 4px;">
+                            ${h.online ? '● Online' : '● Offline'}
                         </div>
-                        <span class="text-xs text-blue-300">CPU: ${h.cpu}%</span>
+                        <div style="color: #1f71ed; font-size: 0.8rem;">CPU ${h.cpu}%</div>
                     </div>
-                    <button class="delete-btn p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition" 
-                            title="删除主机" onclick="deleteHost(${h.id}, '${h.name || h.ip}')">
+                    <button class="delete-btn" title="Delete" onclick="deleteHost(${h.id}, '${h.name || h.ip}')">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                             <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
                             <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
@@ -270,7 +540,6 @@
             `;
             listEl.appendChild(el);
             
-            //在轮询中自动刷新历史趋势图，实现“现实时间实时更新”
             if (currentHostId === h.id) {
                 updateDashboard(h);
                 loadHistory(h.id);
@@ -281,12 +550,12 @@
         const ov = await resOv.json();
         const alertEl = document.getElementById('alert-list');
         alertEl.innerHTML = ov.alerts.map(a => `
-            <div class="alert-item ${a.level === 'danger' ? 'alert-danger' : 'alert-warning'} rounded">
-                <div class="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>[${a.type}]</span>
-                    <span>${a.time.substr(11)}</span>
+            <div class="alert-item ${a.level === 'danger' ? 'danger' : 'warning'}">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-weight: 500; font-size: 0.8rem;">[${a.type}]</span>
+                    <span style="font-size: 0.75rem; color: #999;">${a.time.substr(11)}</span>
                 </div>
-                <div class="text-sm text-gray-200">${a.msg}</div>
+                <div style="font-size: 0.85rem;">${a.msg}</div>
             </div>
         `).join('');
 
@@ -297,34 +566,31 @@
         currentHostId = id;
         document.getElementById('active-host-name').innerText = name;
         document.getElementById('active-host-ip').innerText = ip;
+        loadData();
         loadHistory(id);
     }
 
     async function deleteHost(id, name) {
-        if(!confirm(`⚠️ 高危操作确认\n\n确定要删除主机 [${name}] 吗？\n删除后所有监控历史数据将不可恢复！`)) return;
+        if(!confirm(`Delete host [${name}]?\nAll monitoring data will be lost.`)) return;
         
         try {
             const res = await fetch(`${API}/hosts/${id}`, { method: 'DELETE' });
             if(res.ok) {
                 if(currentHostId === id) {
                     currentHostId = null;
-                    document.getElementById('active-host-name').innerText = "选择左侧主机查看详情";
+                    document.getElementById('active-host-name').innerText = "Select host";
                     document.getElementById('active-host-ip').innerText = "---";
                     ['cpu', 'mem', 'disk'].forEach(k => charts[k].setOption({series:[{data:[{value:0}]}]}));
                 }
                 loadData();
-            } else {
-                alert("删除失败，请检查后端日志");
             }
-        } catch(e) {
-            alert("网络错误，请求发送失败");
-        }
+        } catch(e) {}
     }
 
     function updateDashboard(h) {
         charts.cpu.setOption({ series: [{ data: [{ value: h.cpu, name: 'CPU' }] }] });
-        charts.mem.setOption({ series: [{ data: [{ value: h.mem, name: '内存' }] }] });
-        charts.disk.setOption({ series: [{ data: [{ value: h.disk, name: '磁盘' }] }] });
+        charts.mem.setOption({ series: [{ data: [{ value: h.mem, name: 'Memory' }] }] });
+        charts.disk.setOption({ series: [{ data: [{ value: h.disk, name: 'Disk' }] }] });
         document.getElementById('val-load1').innerText = h.load_1 || 0;
         document.getElementById('val-load5').innerText = h.load_5 || 0;
         document.getElementById('val-uptime').innerText = h.uptime || '-';
@@ -364,7 +630,7 @@
             document.getElementById('addModal').classList.add('hidden');
             e.target.reset();
             loadData();
-        } catch(err) { alert('添加失败'); }
+        } catch(err) {}
     }
 
     initCharts();
