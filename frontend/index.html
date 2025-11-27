@@ -1,645 +1,587 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
     <meta charset="UTF-8">
-    <title>服务器监控系统 - 智能大屏</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Monitor</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.19/vue.esm-browser.prod.js"
+            }
+        }
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        bg: '#09090b',       // Zinc 950
+                        surface: '#18181b',  // Zinc 900
+                        border: '#27272a',   // Zinc 800
+                        primary: '#3b82f6',  // Blue 500
+                        accent: '#8b5cf6',   // Violet 500
+                        success: '#10b981',  // Emerald 500
+                        warning: '#f59e0b',  // Amber 500
+                        danger: '#ef4444',   // Red 500
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        body { 
-            margin: 0; 
-            background-color: #ffffff; 
-            overflow: hidden; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Mono', sans-serif;
-            color: #1a1a1a;
-        }
+        /* 基础样式覆盖 */
+        body { background-color: #09090b; color: #e4e4e7; }
         
-        #app-container {
-            width: 1920px; height: 1080px;
-            background: #ffffff;
-            position: absolute; top: 50%; left: 50%;
-            transform-origin: center center;
-            display: grid;
-            grid-template-columns: 380px 1fr 380px;
-            grid-template-rows: 70px 1fr 340px;
-            gap: 16px;
-            padding: 16px;
-            box-sizing: border-box;
-        }
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
-        .card {
-            background: #f8f8f8;
-            border: 1px solid #e5e5e5;
-            border-radius: 8px;
-            overflow: hidden;
-            display: flex; 
-            flex-direction: column;
-            transition: all 0.2s ease;
-        }
+        /* 动画与过渡 */
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
         
-        .card:hover {
-            border-color: #d0d0d0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
+        .card-hover:hover { border-color: #52525b; }
         
-        .card-header {
-            padding: 12px 16px;
-            background: #fafafa;
-            border-bottom: 1px solid #e5e5e5;
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: #333;
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-        }
-
-        .card-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px;
-        }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #999; }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: #f0f0f0;
-            color: #666;
-        }
-
-        .status-badge.online { background: #e6f4ea; color: #137333; }
-        .status-badge.offline { background: #fce8e6; color: #c5221f; }
-
-        .pulse { animation: pulse-dot 2s infinite; }
-        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-        .alert-item {
-            padding: 10px 12px;
-            border-left: 3px solid #dadce0;
-            margin-bottom: 8px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            font-size: 0.85rem;
-        }
-        .alert-item.danger { 
-            border-left-color: #d32f2f;
-            background: #ffebee;
-        }
-        .alert-item.warning { 
-            border-left-color: #f57c00;
-            background: #fff3e0;
-        }
-
-        .host-item {
-            padding: 10px 12px;
-            margin-bottom: 8px;
-            background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .host-item:hover {
-            background: #f0f0f0;
-            border-color: #d0d0d0;
-        }
-
-        .host-item.active {
-            background: #e8f0fe;
-            border-color: #1f71ed;
-        }
-
-        .host-item-left {
-            flex: 1;
-            cursor: pointer;
-        }
-
-        .host-item-name {
-            font-weight: 500;
-            color: #1a1a1a;
-            font-size: 0.9rem;
-            margin-bottom: 4px;
-        }
-
-        .host-item-ip {
-            font-size: 0.75rem;
-            color: #999;
-        }
-
-        .host-item-stats {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .host-item-stat {
-            text-align: right;
-            font-size: 0.8rem;
-        }
-
-        .delete-btn {
-            opacity: 0;
-            transition: all 0.2s;
-            cursor: pointer;
-            padding: 4px 6px;
-            color: #999;
-            border-radius: 4px;
-        }
-
-        .host-item:hover .delete-btn {
-            opacity: 1;
-        }
-
-        .delete-btn:hover {
-            background: #ffebee;
-            color: #d32f2f;
-        }
-
-        .top-bar {
-            grid-column: 1 / -1;
-            background: #ffffff;
-            border-bottom: 1px solid #e5e5e5;
-            padding: 12px 16px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .top-bar-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .top-bar-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            letter-spacing: -0.02em;
-        }
-
-        .top-bar-right {
-            display: flex;
-            gap: 24px;
-            align-items: center;
-        }
-
-        .stat-group {
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: #999;
-            margin-bottom: 4px;
-        }
-
-        .stat-value {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-
-        .btn-primary {
-            background: #1f71ed;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-primary:hover {
-            background: #1859c9;
-            box-shadow: 0 2px 8px rgba(31, 113, 237, 0.2);
-        }
-
-        .bottom-info {
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0;
-            font-size: 0.85rem;
-            color: #666;
-            border-top: 1px solid #e5e5e5;
-        }
-
-        .bottom-info-item {
-            text-align: center;
-        }
-
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
-
-        .modal-content {
-            background: #ffffff;
-            border-radius: 8px;
-            border: 1px solid #e5e5e5;
-            padding: 24px;
-            width: 480px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d0d0d0;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            background: #fafafa;
-            color: #1a1a1a;
-            font-family: inherit;
-            transition: all 0.2s;
-            box-sizing: border-box;
-        }
-
-        .form-input:focus {
-            outline: none;
-            background: #ffffff;
-            border-color: #1f71ed;
-            box-shadow: 0 0 0 3px rgba(31, 113, 237, 0.1);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-
-        .btn-cancel {
-            flex: 1;
-            padding: 10px 16px;
-            border: 1px solid #d0d0d0;
-            background: #ffffff;
-            color: #1a1a1a;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-cancel:hover {
-            background: #f8f8f8;
-            border-color: #b0b0b0;
-        }
-
-        .btn-submit {
-            flex: 1;
-            padding: 10px 16px;
-            background: #1f71ed;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-submit:hover {
-            background: #1859c9;
-        }
+        /* 进度条动画 */
+        .progress-bar { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body>
 
-<div id="app-container">
+<div id="app" class="h-screen w-screen flex overflow-hidden text-sm">
     
-    <div class="top-bar">
-        <div class="top-bar-left">
-            <span style="font-size: 1.8rem;">◎</span>
-            <div class="top-bar-title">Server Monitor</div>
+    <aside class="w-72 bg-surface border-r border-border flex flex-col z-20">
+        <div class="p-4 border-b border-border flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+            </div>
+            <h1 class="font-semibold text-lg tracking-tight text-white">Monitor</h1>
         </div>
-        <div class="top-bar-right">
-            <div class="stat-group">
-                <div class="stat-label">Active Hosts</div>
-                <div class="stat-value" id="total-hosts-num">0</div>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-2">
+            <div v-if="loadingHosts" class="text-center py-4 text-zinc-500">Loading...</div>
+            
+            <div v-for="host in hosts" :key="host.id" 
+                 @click="selectHost(host)"
+                 class="group p-3 rounded-lg cursor-pointer border transition-all duration-200"
+                 :class="currentHost?.id === host.id ? 'bg-zinc-800 border-zinc-700 shadow-sm' : 'border-transparent hover:bg-zinc-800/50 hover:border-zinc-800'">
+                
+                <div class="flex justify-between items-start mb-2">
+                    <span class="font-medium text-zinc-200 truncate">{{ host.name || host.ip }}</span>
+                    <span class="flex h-2 w-2 relative">
+                        <span v-if="host.online" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2" :class="host.online ? 'bg-emerald-500' : 'bg-red-500'"></span>
+                    </span>
+                </div>
+                
+                <div class="flex items-center justify-between text-xs text-zinc-500 font-mono">
+                    <span>{{ host.ip }}</span>
+                    <button @click.stop="deleteHost(host)" class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity p-1">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    </button>
+                </div>
             </div>
-            <div class="stat-group">
-                <div class="stat-label">Uptime</div>
-                <div class="stat-value" id="sys-time" style="font-size: 1rem;">00:00:00</div>
-            </div>
-            <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="btn-primary">
+            
+            <button @click="showAddModal = true" class="w-full mt-2 py-2 border border-dashed border-zinc-700 rounded-lg text-zinc-500 hover:text-zinc-300 hover:border-zinc-500 transition-colors text-xs uppercase tracking-wider font-medium">
                 + Add Host
             </button>
         </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span>Hosts</span>
-            <span class="status-badge online pulse" style="font-size: 0.75rem;">● Sync</span>
+        
+        <div class="p-4 border-t border-border bg-black/20">
+            <div class="flex justify-between text-xs text-zinc-500 mb-1">
+                <span>Alerts</span>
+                <span class="text-white font-mono">{{ overview.alerts?.length || 0 }}</span>
+            </div>
+            <div class="flex justify-between text-xs text-zinc-500">
+                <span>Active</span>
+                <span class="text-emerald-500 font-mono">{{ hosts.filter(h => h.online).length }}</span>
+            </div>
         </div>
-        <div class="card-body" id="host-list"></div>
-    </div>
+    </aside>
 
-    <div class="card">
-        <div class="card-header">
+    <main class="flex-1 flex flex-col relative bg-bg overflow-hidden">
+        
+        <header class="h-16 border-b border-border flex items-center justify-between px-6 bg-bg/50 backdrop-blur-sm z-10">
             <div>
-                <div id="active-host-name" style="font-weight: 600;">Select host</div>
-                <div id="active-host-ip" style="font-size: 0.8rem; color: #999; margin-top: 2px;">---</div>
-            </div>
-        </div>
-        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 12px;">
-            <div id="gauge-cpu" style="height: 100%;"></div>
-            <div id="gauge-mem" style="height: 100%;"></div>
-            <div id="gauge-disk" style="height: 100%;"></div>
-        </div>
-        <div class="bottom-info">
-            <div class="bottom-info-item">Load (1m): <strong id="val-load1">-</strong></div>
-            <div class="bottom-info-item">Load (5m): <strong id="val-load5">-</strong></div>
-            <div class="bottom-info-item">Uptime: <strong id="val-uptime">-</strong></div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            Network I/O (MB/s)
-        </div>
-        <div style="flex: 1;" id="chart-net"></div>
-        <div style="display: flex; justify-content: space-around; padding: 8px 12px; border-top: 1px solid #e5e5e5; font-size: 0.85rem;">
-            <span style="color: #1f71ed;">↓ Down: <strong id="speed-down">0</strong></span>
-            <span style="color: #d32f2f;">↑ Up: <strong id="speed-up">0</strong></span>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">Alerts</div>
-        <div class="card-body" id="alert-list"></div>
-    </div>
-
-    <div class="card" style="grid-column: 2 / -1;">
-        <div class="card-header">Resource Trends (1h)</div>
-        <div style="flex: 1; width: 100%; height: 100%;" id="chart-history"></div>
-    </div>
-
-</div>
-
-<div id="addModal" class="modal hidden">
-    <div class="modal-content">
-        <h2 class="modal-title">Add / Manage Host</h2>
-        <form onsubmit="addHost(event)">
-            <div class="form-group">
-                <input name="ip" placeholder="IP Address" class="form-input" required>
-            </div>
-            <div class="form-row">
-                <input name="username" placeholder="SSH User" class="form-input" required>
-                <input name="port" type="number" placeholder="Port" value="22" class="form-input">
-            </div>
-            <div class="form-group">
-                <input name="password" type="password" placeholder="SSH Password" class="form-input" required>
-            </div>
-            <div class="form-group">
-                <input name="name" placeholder="Hostname (optional)" class="form-input">
-            </div>
-            <div class="modal-buttons">
-                <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="btn-cancel">Cancel</button>
-                <button type="submit" class="btn-submit">Deploy Agent</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-    function fitScreen() {
-        const targetW = 1920, targetH = 1080;
-        const scaleX = window.innerWidth / targetW;
-        const scaleY = window.innerHeight / targetH;
-        const scale = Math.min(scaleX, scaleY);
-        document.getElementById('app-container').style.transform = `translate(-50%, -50%) scale(${scale})`;
-    }
-    window.addEventListener('resize', fitScreen);
-    fitScreen();
-    setInterval(() => document.getElementById('sys-time').innerText = new Date().toLocaleTimeString(), 1000);
-
-    const API = '/api';
-    let currentHostId = null;
-    let charts = {};
-    
-    function initCharts() {
-        const gaugeOption = (color, title) => ({
-            series: [{
-                type: 'gauge', radius: '90%',
-                axisLine: { lineStyle: { width: 10, color: [[1, '#e5e5e5']] } },
-                progress: { show: true, width: 10, itemStyle: { color: color } },
-                axisLabel: { show: false }, axisTick: { show: false }, splitLine: { show: false },
-                pointer: { length: '60%', width: 5, itemStyle: { color: color } },
-                detail: { valueAnimation: true, fontSize: 28, color: '#1a1a1a', formatter: '{value}%', offsetCenter: [0, '70%'] },
-                title: { show: true, offsetCenter: [0, '110%'], fontSize: 14, color: '#999' },
-                data: [{ value: 0, name: title }]
-            }]
-        });
-
-        charts.cpu = echarts.init(document.getElementById('gauge-cpu'));
-        charts.cpu.setOption(gaugeOption('#1f71ed', 'CPU'));
-        charts.mem = echarts.init(document.getElementById('gauge-mem'));
-        charts.mem.setOption(gaugeOption('#7c3aed', 'Memory'));
-        charts.disk = echarts.init(document.getElementById('gauge-disk'));
-        charts.disk.setOption(gaugeOption('#059669', 'Disk'));
-
-        charts.net = echarts.init(document.getElementById('chart-net'));
-        charts.net.setOption({
-            grid: { top: 10, bottom: 20, left: 40, right: 10 },
-            xAxis: { type: 'category', show: false },
-            yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } }, axisLabel: { color: '#999', fontSize: 11 } },
-            series: [
-                { name: 'Down', type: 'line', smooth: true, showSymbol: false, areaStyle: { opacity: 0.1 }, lineStyle: { color: '#1f71ed', width: 2 }, itemStyle: { color: '#1f71ed' } },
-                { name: 'Up', type: 'line', smooth: true, showSymbol: false, areaStyle: { opacity: 0.1 }, lineStyle: { color: '#d32f2f', width: 2 }, itemStyle: { color: '#d32f2f' } }
-            ]
-        });
-
-        charts.hist = echarts.init(document.getElementById('chart-history'));
-        charts.hist.setOption({
-            tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-            legend: { textStyle: { color: '#666' }, top: 0, right: 0 },
-            grid: { top: 30, bottom: 20, left: 40, right: 20 },
-            xAxis: { type: 'category', boundaryGap: false, axisLabel: { color: '#999', fontSize: 11 } },
-            yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } }, axisLabel: { color: '#999', fontSize: 11 } },
-            series: [
-                { name: 'CPU', type: 'line', smooth: true, showSymbol: false, lineStyle: { color: '#1f71ed', width: 2 }, areaStyle: { opacity: 0.1 } },
-                { name: 'Memory', type: 'line', smooth: true, showSymbol: false, lineStyle: { color: '#7c3aed', width: 2 }, areaStyle: { opacity: 0.1 } },
-                { name: 'Disk', type: 'line', smooth: true, showSymbol: false, lineStyle: { color: '#059669', width: 2 }, areaStyle: { opacity: 0.1 } }
-            ]
-        });
-    }
-    
-    async function loadData() {
-        const res = await fetch(`${API}/hosts`);
-        const hosts = await res.json();
-        
-        document.getElementById('total-hosts-num').innerText = hosts.length;
-        
-        const listEl = document.getElementById('host-list');
-        listEl.innerHTML = '';
-        
-        hosts.forEach(h => {
-            const el = document.createElement('div');
-            el.className = `host-item ${currentHostId === h.id ? 'active' : ''}`;
-            
-            el.innerHTML = `
-                <div class="host-item-left" onclick="selectHost(${h.id}, '${h.name || h.ip}', '${h.ip}')">
-                    <div class="host-item-name">${h.name || h.ip}</div>
-                    <div class="host-item-ip">${h.ip}</div>
+                <h2 class="text-xl font-semibold text-white tracking-tight">{{ currentHost?.name || currentHost?.ip || 'Select a Host' }}</h2>
+                <div class="flex items-center gap-2 text-xs text-zinc-500 font-mono mt-1" v-if="currentHost">
+                    <span :class="{'text-emerald-500': sseStatus === 'connected', 'text-amber-500': sseStatus === 'connecting', 'text-red-500': sseStatus === 'error'}">
+                        ● {{ sseStatus.toUpperCase() }}
+                    </span>
+                    <span class="w-px h-3 bg-zinc-800"></span>
+                    <span>UPTIME: {{ metrics?.uptime || '-' }}</span>
                 </div>
-                <div class="host-item-stats">
-                    <div class="host-item-stat">
-                        <div class="status-badge ${h.online ? 'online' : 'offline'}" style="margin-bottom: 4px;">
-                            ${h.online ? '● Online' : '● Offline'}
+            </div>
+            
+            <div class="font-mono text-zinc-400 text-xs">
+                {{ currentTime }} UTC
+            </div>
+        </header>
+
+        <div v-if="currentHost" class="flex-1 overflow-y-auto p-6 scroll-smooth">
+            
+            <div class="grid grid-cols-4 grid-rows-6 gap-4 h-[900px]">
+                
+                <div class="col-span-2 row-span-2 bg-surface border border-border rounded-xl p-5 flex flex-col relative overflow-hidden group">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2 text-zinc-400">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                            <span class="font-medium text-xs uppercase tracking-wider">CPU Usage</span>
                         </div>
-                        <div style="color: #1f71ed; font-size: 0.8rem;">CPU ${h.cpu}%</div>
+                        <span class="text-2xl font-bold font-mono text-white">{{ formatNumber(metrics?.cpu?.total, 1) }}%</span>
                     </div>
-                    <button class="delete-btn" title="Delete" onclick="deleteHost(${h.id}, '${h.name || h.ip}')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                        </svg>
-                    </button>
+                    
+                    <div ref="cpuChartEl" class="flex-1 w-full -ml-2"></div>
+                    
+                    <div class="grid grid-cols-4 gap-2 mt-2 pt-3 border-t border-zinc-800/50">
+                        <div class="text-center">
+                            <div class="text-[10px] text-zinc-500 uppercase">User</div>
+                            <div class="text-xs font-mono text-blue-400">{{ formatNumber(metrics?.cpu?.user) }}%</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[10px] text-zinc-500 uppercase">Sys</div>
+                            <div class="text-xs font-mono text-rose-400">{{ formatNumber(metrics?.cpu?.system) }}%</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[10px] text-zinc-500 uppercase">Wait</div>
+                            <div class="text-xs font-mono text-amber-400">{{ formatNumber(metrics?.cpu?.iowait) }}%</div>
+                        </div>
+                         <div class="text-center">
+                            <div class="text-[10px] text-zinc-500 uppercase">Load 1m</div>
+                            <div class="text-xs font-mono text-white">{{ metrics?.load?.['1m'] || 0 }}</div>
+                        </div>
+                    </div>
                 </div>
-            `;
-            listEl.appendChild(el);
-            
-            if (currentHostId === h.id) {
-                updateDashboard(h);
-                loadHistory(h.id);
-            }
-        });
 
-        const resOv = await fetch(`${API}/overview`);
-        const ov = await resOv.json();
-        const alertEl = document.getElementById('alert-list');
-        alertEl.innerHTML = ov.alerts.map(a => `
-            <div class="alert-item ${a.level === 'danger' ? 'danger' : 'warning'}">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span style="font-weight: 500; font-size: 0.8rem;">[${a.type}]</span>
-                    <span style="font-size: 0.75rem; color: #999;">${a.time.substr(11)}</span>
+                <div class="col-span-1 row-span-2 bg-surface border border-border rounded-xl p-5 flex flex-col">
+                    <div class="flex items-center gap-2 text-zinc-400 mb-2">
+                        <i data-lucide="memory-stick" class="w-4 h-4"></i>
+                        <span class="font-medium text-xs uppercase tracking-wider">Memory</span>
+                    </div>
+                    <div ref="memChartEl" class="flex-1 w-full"></div>
+                    <div class="mt-2 space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-zinc-500">Used</span>
+                            <span class="font-mono text-white">{{ formatBytes(metrics?.memory?.used) }}</span>
+                        </div>
+                         <div class="flex justify-between text-xs">
+                            <span class="text-zinc-500">Free</span>
+                            <span class="font-mono text-zinc-400">{{ formatBytes(metrics?.memory?.free) }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-zinc-800/50">
+                        <div class="flex justify-between text-[10px] text-zinc-500 mb-1">
+                            <span>Swap</span>
+                            <span>{{ ((metrics?.swap?.used / metrics?.swap?.total || 0) * 100).toFixed(0) }}%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-purple-500 progress-bar" :style="{width: (metrics?.swap?.used / metrics?.swap?.total * 100) + '%'}"></div>
+                        </div>
+                    </div>
                 </div>
-                <div style="font-size: 0.85rem;">${a.msg}</div>
+
+                <div class="col-span-1 row-span-2 bg-surface border border-border rounded-xl p-5 flex flex-col">
+                     <div class="flex items-center gap-2 text-zinc-400 mb-4">
+                        <i data-lucide="network" class="w-4 h-4"></i>
+                        <span class="font-medium text-xs uppercase tracking-wider">Network</span>
+                    </div>
+                    
+                    <div class="flex-1 flex flex-col justify-center gap-6">
+                        <div>
+                            <div class="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+                                <i data-lucide="arrow-down" class="w-3 h-3 text-emerald-500"></i> Down
+                            </div>
+                            <div class="text-2xl font-mono text-white tracking-tight">
+                                {{ metrics?.net?.down }} <span class="text-sm text-zinc-500">MB/s</span>
+                            </div>
+                             <div class="h-8 mt-2 flex items-end gap-0.5 opacity-50">
+                                <div v-for="n in 10" :key="n" class="w-full bg-emerald-500/20 rounded-sm" 
+                                     :style="{height: Math.random() * 100 + '%'}"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+                                <i data-lucide="arrow-up" class="w-3 h-3 text-blue-500"></i> Up
+                            </div>
+                            <div class="text-2xl font-mono text-white tracking-tight">
+                                {{ metrics?.net?.up }} <span class="text-sm text-zinc-500">MB/s</span>
+                            </div>
+                             <div class="h-8 mt-2 flex items-end gap-0.5 opacity-50">
+                                <div v-for="n in 10" :key="n" class="w-full bg-blue-500/20 rounded-sm" 
+                                     :style="{height: Math.random() * 100 + '%'}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-2 row-span-4 bg-surface border border-border rounded-xl p-0 overflow-hidden flex flex-col">
+                    <div class="p-4 border-b border-border flex items-center justify-between bg-zinc-900/50">
+                        <div class="flex items-center gap-2 text-zinc-400">
+                            <i data-lucide="list" class="w-4 h-4"></i>
+                            <span class="font-medium text-xs uppercase tracking-wider">Top Processes</span>
+                        </div>
+                        <span class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded">Sort: CPU</span>
+                    </div>
+                    <div class="flex-1 overflow-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-zinc-900/50 text-[10px] uppercase text-zinc-500 sticky top-0 backdrop-blur-sm">
+                                <tr>
+                                    <th class="p-3 font-medium">PID</th>
+                                    <th class="p-3 font-medium">Name</th>
+                                    <th class="p-3 font-medium">User</th>
+                                    <th class="p-3 font-medium text-right">CPU%</th>
+                                    <th class="p-3 font-medium text-right">MEM%</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-xs font-mono text-zinc-300 divide-y divide-zinc-800/50">
+                                <tr v-for="proc in metrics?.processes?.slice(0, 15)" :key="proc.pid" class="hover:bg-white/5 transition-colors">
+                                    <td class="p-3 text-zinc-500">{{ proc.pid }}</td>
+                                    <td class="p-3 font-semibold text-white">{{ proc.name }}</td>
+                                    <td class="p-3">{{ proc.user }}</td>
+                                    <td class="p-3 text-right" :class="proc.cpu > 50 ? 'text-red-400' : 'text-zinc-300'">{{ proc.cpu }}</td>
+                                    <td class="p-3 text-right">{{ proc.mem }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                 <div class="col-span-1 row-span-2 bg-surface border border-border rounded-xl p-5 flex flex-col">
+                    <div class="flex items-center gap-2 text-zinc-400 mb-4">
+                        <i data-lucide="hard-drive" class="w-4 h-4"></i>
+                        <span class="font-medium text-xs uppercase tracking-wider">Disk</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center justify-center relative">
+                        <div ref="diskChartEl" class="w-full h-full absolute inset-0"></div>
+                        <div class="text-center z-10 pointer-events-none mt-8">
+                            <div class="text-3xl font-bold font-mono text-white">{{ metrics?.disk?.toFixed(1) }}%</div>
+                            <div class="text-xs text-zinc-500">Used Space</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-1 row-span-2 bg-surface border border-border rounded-xl p-5 overflow-y-auto">
+                    <div class="flex items-center gap-2 text-zinc-400 mb-3">
+                         <i data-lucide="terminal" class="w-4 h-4"></i>
+                         <span class="font-medium text-xs uppercase tracking-wider">System Events</span>
+                    </div>
+                    <div class="space-y-3">
+                         <div v-if="metrics?.error" class="p-3 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-200">
+                            <strong>Connection Error:</strong> {{ metrics.detail }}
+                         </div>
+                         <div v-for="alert in overview.alerts?.slice(0, 5)" :key="alert.msg" 
+                              class="text-xs p-2 rounded border"
+                              :class="alert.level === 'danger' ? 'bg-red-900/20 border-red-900/50 text-red-300' : 'bg-amber-900/20 border-amber-900/50 text-amber-300'">
+                            <div class="flex justify-between opacity-70 mb-1 text-[10px]">
+                                <span>{{ alert.type }}</span>
+                                <span>{{ alert.time.split('T')[1].split('.')[0] }}</span>
+                            </div>
+                            {{ alert.msg }}
+                         </div>
+                         <div v-if="!metrics?.error && (!overview.alerts || overview.alerts.length === 0)" class="text-center text-zinc-600 text-xs py-4">
+                             System Nominal
+                         </div>
+                    </div>
+                </div>
+
             </div>
-        `).join('');
+        </div>
 
-        if (!currentHostId && hosts.length > 0) selectHost(hosts[0].id, hosts[0].name || hosts[0].ip, hosts[0].ip);
-    }
+        <div v-else class="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-4">
+            <i data-lucide="server" class="w-16 h-16 opacity-20"></i>
+            <p>Select a host to begin monitoring via SSE stream.</p>
+        </div>
 
-    async function selectHost(id, name, ip) {
-        currentHostId = id;
-        document.getElementById('active-host-name').innerText = name;
-        document.getElementById('active-host-ip').innerText = ip;
-        loadData();
-        loadHistory(id);
-    }
+    </main>
 
-    async function deleteHost(id, name) {
-        if(!confirm(`Delete host [${name}]?\nAll monitoring data will be lost.`)) return;
-        
-        try {
-            const res = await fetch(`${API}/hosts/${id}`, { method: 'DELETE' });
-            if(res.ok) {
-                if(currentHostId === id) {
-                    currentHostId = null;
-                    document.getElementById('active-host-name').innerText = "Select host";
-                    document.getElementById('active-host-ip').innerText = "---";
-                    ['cpu', 'mem', 'disk'].forEach(k => charts[k].setOption({series:[{data:[{value:0}]}]}));
+    <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-xl w-96 shadow-2xl">
+            <h3 class="text-lg font-semibold text-white mb-4">Add New Host</h3>
+            <form @submit.prevent="submitHost" class="space-y-4">
+                <input v-model="form.ip" placeholder="IP Address" required class="w-full bg-zinc-950 border border-zinc-700 rounded p-2 text-white focus:border-primary focus:outline-none placeholder-zinc-600">
+                <div class="grid grid-cols-2 gap-4">
+                    <input v-model="form.username" placeholder="User" required class="w-full bg-zinc-950 border border-zinc-700 rounded p-2 text-white focus:border-primary focus:outline-none placeholder-zinc-600">
+                    <input v-model="form.port" type="number" placeholder="22" class="w-full bg-zinc-950 border border-zinc-700 rounded p-2 text-white focus:border-primary focus:outline-none placeholder-zinc-600">
+                </div>
+                <input v-model="form.password" type="password" placeholder="Password" required class="w-full bg-zinc-950 border border-zinc-700 rounded p-2 text-white focus:border-primary focus:outline-none placeholder-zinc-600">
+                <input v-model="form.name" placeholder="Friendly Name" class="w-full bg-zinc-950 border border-zinc-700 rounded p-2 text-white focus:border-primary focus:outline-none placeholder-zinc-600">
+                
+                <div class="flex gap-3 mt-6">
+                    <button type="button" @click="showAddModal = false" class="flex-1 py-2 px-4 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">Cancel</button>
+                    <button type="submit" class="flex-1 py-2 px-4 rounded bg-primary text-white font-medium hover:bg-blue-600 transition">Add Host</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+    import { createApp, ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue';
+
+    createApp({
+        setup() {
+            // --- State ---
+            const hosts = ref([]);
+            const currentHost = ref(null);
+            const metrics = ref({});
+            const overview = ref({ alerts: [] });
+            const sseStatus = ref('disconnected'); // disconnected, connecting, connected, error
+            const showAddModal = ref(false);
+            const loadingHosts = ref(false);
+            const currentTime = ref(new Date().toISOString().split('T')[1].split('.')[0]);
+            
+            // Form Data
+            const form = reactive({ ip: '', username: '', password: '', port: 22, name: '' });
+            
+            // Chart Refs
+            const cpuChartEl = ref(null);
+            const memChartEl = ref(null);
+            const diskChartEl = ref(null);
+            let charts = { cpu: null, mem: null, disk: null };
+            let eventSource = null;
+
+            // --- API Layer ---
+            const API_BASE = '/api';
+
+            const loadHosts = async () => {
+                loadingHosts.value = true;
+                try {
+                    const [resHosts, resOv] = await Promise.all([
+                        fetch(`${API_BASE}/hosts`),
+                        fetch(`${API_BASE}/overview`)
+                    ]);
+                    hosts.value = await resHosts.json();
+                    overview.value = await resOv.json();
+                } catch (e) {
+                    console.error("Init failed", e);
+                } finally {
+                    loadingHosts.value = false;
                 }
-                loadData();
-            }
-        } catch(e) {}
-    }
+            };
 
-    function updateDashboard(h) {
-        charts.cpu.setOption({ series: [{ data: [{ value: h.cpu, name: 'CPU' }] }] });
-        charts.mem.setOption({ series: [{ data: [{ value: h.mem, name: 'Memory' }] }] });
-        charts.disk.setOption({ series: [{ data: [{ value: h.disk, name: 'Disk' }] }] });
-        document.getElementById('val-load1').innerText = h.load_1 || 0;
-        document.getElementById('val-load5').innerText = h.load_5 || 0;
-        document.getElementById('val-uptime').innerText = h.uptime || '-';
-        document.getElementById('speed-down').innerText = h.net_down;
-        document.getElementById('speed-up').innerText = h.net_up;
-    }
+            const submitHost = async () => {
+                try {
+                    await fetch(`${API_BASE}/hosts`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(form)
+                    });
+                    showAddModal.value = false;
+                    Object.keys(form).forEach(k => form[k] = k === 'port' ? 22 : '');
+                    loadHosts();
+                } catch (e) { alert('Failed to add host'); }
+            };
 
-    async function loadHistory(id) {
-        const res = await fetch(`${API}/history/${id}?limit=30`);
-        const data = await res.json();
-        const times = data.map(d => d.time);
-        
-        charts.hist.setOption({
-            xAxis: { data: times },
-            series: [
-                { data: data.map(d => d.cpu) }, 
-                { data: data.map(d => d.mem) },
-                { data: data.map(d => d.disk || 0) }
-            ]
-        });
-        
-        charts.net.setOption({
-            xAxis: { data: times },
-            series: [{ data: data.map(d => d.net_down) }, { data: data.map(d => d.net_up) }]
-        });
-    }
+            const deleteHost = async (host) => {
+                if(!confirm(`Delete ${host.name}?`)) return;
+                await fetch(`${API_BASE}/hosts/${host.id}`, { method: 'DELETE' });
+                if(currentHost.value?.id === host.id) {
+                    currentHost.value = null;
+                    stopSSE();
+                }
+                loadHosts();
+            };
 
-    async function addHost(e) {
-        e.preventDefault();
-        const formData = Object.fromEntries(new FormData(e.target));
-        try {
-            await fetch(`${API}/hosts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+            // --- SSE Logic ---
+            const startSSE = (hostId) => {
+                stopSSE();
+                sseStatus.value = 'connecting';
+                metrics.value = {}; // Clear old data
+                
+                eventSource = new EventSource(`${API_BASE}/stream/${hostId}`);
+                
+                eventSource.onopen = () => {
+                    sseStatus.value = 'connected';
+                };
+
+                eventSource.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+                    if(data.error) {
+                        metrics.value = { ...metrics.value, error: true, detail: data.detail };
+                    } else {
+                        metrics.value = data;
+                        updateCharts(data);
+                    }
+                };
+
+                eventSource.onerror = (e) => {
+                    sseStatus.value = 'error';
+                    console.error("SSE Error", e);
+                    // EventSource auto-retries, but we update UI
+                };
+            };
+
+            const stopSSE = () => {
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                    sseStatus.value = 'disconnected';
+                }
+            };
+
+            const selectHost = (host) => {
+                currentHost.value = host;
+                startSSE(host.id);
+                // Re-init charts after DOM update
+                nextTick(() => initCharts());
+            };
+
+            // --- Charts (ECharts) ---
+            const initCharts = () => {
+                if(!currentHost.value) return;
+                
+                const commonOption = {
+                    backgroundColor: 'transparent',
+                    animation: false // Disable chart internal animation for smoother SSE updates
+                };
+
+                // CPU Line Chart (Simulated history via real-time points logic could go here, 
+                // but for now we visualize the "Load" or just a clean gauge)
+                // Using a Gauge/Line hybrid for CPU
+                if (cpuChartEl.value) {
+                    charts.cpu = echarts.init(cpuChartEl.value);
+                    charts.cpu.setOption({
+                        ...commonOption,
+                        grid: { left: 0, right: 0, top: 10, bottom: 0 },
+                        xAxis: { type: 'category', show: false },
+                        yAxis: { type: 'value', max: 100, show: false },
+                        series: [{
+                            type: 'line',
+                            smooth: true,
+                            showSymbol: false,
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(59, 130, 246, 0.5)' },
+                                    { offset: 1, color: 'rgba(59, 130, 246, 0.0)' }
+                                ])
+                            },
+                            lineStyle: { color: '#3b82f6', width: 2 },
+                            data: Array(20).fill(0) // Initial placeholder
+                        }]
+                    });
+                }
+
+                // Memory Donut
+                if (memChartEl.value) {
+                    charts.mem = echarts.init(memChartEl.value);
+                    charts.mem.setOption({
+                        ...commonOption,
+                        series: [{
+                            type: 'pie',
+                            radius: ['70%', '90%'],
+                            center: ['50%', '50%'],
+                            label: { show: false },
+                            data: [
+                                { value: 0, itemStyle: { color: '#8b5cf6' } }, // Used
+                                { value: 100, itemStyle: { color: '#27272a' } } // Free
+                            ]
+                        }]
+                    });
+                }
+
+                 // Disk Gauge
+                 if (diskChartEl.value) {
+                    charts.disk = echarts.init(diskChartEl.value);
+                    charts.disk.setOption({
+                        ...commonOption,
+                        series: [{
+                            type: 'gauge',
+                            startAngle: 90, endAngle: -270,
+                            pointer: { show: false },
+                            progress: { show: true, overlap: false, roundCap: true, clip: false, itemStyle: { color: '#10b981' } },
+                            axisLine: { lineStyle: { width: 8, color: [[1, '#27272a']] } },
+                            splitLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false },
+                            detail: { show: false },
+                            data: [{ value: 0 }]
+                        }]
+                    });
+                }
+            };
+
+            // Local history buffer for the sparkline
+            const cpuHistory = reactive(Array(20).fill(0));
+
+            const updateCharts = (data) => {
+                if(!charts.cpu) return;
+
+                // Update CPU Buffer
+                cpuHistory.shift();
+                cpuHistory.push(data.cpu.total);
+
+                charts.cpu.setOption({
+                    series: [{ data: cpuHistory }]
+                });
+
+                charts.mem.setOption({
+                    series: [{
+                        data: [
+                            { value: data.memory.used, itemStyle: { color: '#8b5cf6' } },
+                            { value: data.memory.free, itemStyle: { color: '#27272a' } }
+                        ]
+                    }]
+                });
+
+                charts.disk.setOption({
+                    series: [{ data: [{ value: data.disk }] }]
+                });
+            };
+
+            // --- Utilities ---
+            const formatBytes = (mb) => {
+                if(!mb) return '0 MB';
+                return mb > 1024 ? (mb/1024).toFixed(2) + ' GB' : mb.toFixed(0) + ' MB';
+            };
+            
+            const formatNumber = (num, fixed=0) => num ? num.toFixed(fixed) : '0';
+
+            // --- Lifecycle ---
+            onMounted(() => {
+                loadHosts();
+                lucide.createIcons();
+                
+                setInterval(() => {
+                    currentTime.value = new Date().toISOString().split('T')[1].split('.')[0];
+                }, 1000);
+                
+                window.addEventListener('resize', () => {
+                    Object.values(charts).forEach(c => c && c.resize());
+                });
             });
-            document.getElementById('addModal').classList.add('hidden');
-            e.target.reset();
-            loadData();
-        } catch(err) {}
-    }
 
-    initCharts();
-    loadData();
-    setInterval(loadData, 2000); 
-    window.addEventListener('resize', () => {
-        fitScreen();
-        Object.values(charts).forEach(c => c.resize());
-    });
+            onUnmounted(() => {
+                stopSSE();
+            });
+
+            // Re-run icons when DOM updates
+            watch(metrics, () => {
+                nextTick(() => lucide.createIcons());
+            });
+
+            return {
+                hosts, currentHost, metrics, overview, sseStatus, showAddModal, loadingHosts,
+                form, cpuChartEl, memChartEl, diskChartEl,
+                selectHost, submitHost, deleteHost, formatBytes, formatNumber, currentTime
+            };
+        }
+    }).mount('#app');
 </script>
 </body>
 </html>
