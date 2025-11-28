@@ -460,7 +460,8 @@ def get_overview():
     c.execute("SELECT count(*) FROM hosts")
     total_hosts = c.fetchone()[0]
     
-    c.execute("SELECT type, message, level, timestamp FROM alerts ORDER BY id DESC LIMIT 10")
+    #增加过滤条件，只查询依然存在的主机的告警
+    c.execute("SELECT type, message, level, timestamp FROM alerts WHERE host_id IN (SELECT id FROM hosts) ORDER BY id DESC LIMIT 10")
     alerts = []
     for r in c.fetchall():
         time_str = r[3]
