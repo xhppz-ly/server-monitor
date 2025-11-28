@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  # --- 后端服务 (Python Flask) ---
+  backend:
+    # 指定去 backend 文件夹构建镜像
+    build: ./backend
+    container_name: monitor-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      # 只挂载 data 目录用来存数据库，千万不要挂载到 /app
+      # 否则宿主机的空文件夹会把容器里的代码文件覆盖掉！
+      - ./backend_data:/app/data
+    restart: always
+
+  # --- 前端服务 (Nginx) ---
+  frontend:
+    # 指定去 frontend 文件夹构建镜像
+    build: ./frontend
+    container_name: monitor-frontend
+    ports:
+      - "8080:80"  # 浏览器访问 8080
+    depends_on:
+      - backend
+    restart: always
