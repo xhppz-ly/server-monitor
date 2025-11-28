@@ -93,13 +93,21 @@ def get_monitoring_data():
         data["net"]["down"] = round((r2 - r1) / 1024 / 1024 * 2, 2)
         data["net"]["up"] = round((t2 - t1) / 1024 / 1024 * 2, 2)
 
+<<<<<<< HEAD
 # ===== Uptime 采集 =====
+=======
+        # ===== Uptime 采集 =====
+>>>>>>> 5a0e02ac8f6b4033eccb2042383ceefa4d2642d6
         with open('/proc/uptime', 'r') as f:
             uptime_sec = int(float(f.read().split()[0]))
         days = uptime_sec // 86400
         hours = (uptime_sec % 86400) // 3600
         minutes = (uptime_sec % 3600) // 60
+<<<<<<< HEAD
         data["uptime"] = f"{days}d {hours}h {minutes}m"
+=======
+        data["uptime"] = f"{days}天 {hours}小时 {minutes}分"
+>>>>>>> 5a0e02ac8f6b4033eccb2042383ceefa4d2642d6
 
         # ===== 进程采集（前40个） =====
         try:
