@@ -116,11 +116,7 @@ def get_data():
         days = uptime_sec // 86400
         hours = (uptime_sec % 86400) // 3600
         minutes = (uptime_sec % 3600) // 60
-<<<<<<< HEAD
         data["uptime"] = f"{days}d {hours}h {minutes}m"
-=======
-        data["uptime"] = f"{days}天 {hours}小时 {minutes}分"
->>>>>>> 5a0e02ac8f6b4033eccb2042383ceefa4d2642d6
         try:
             ps_output = subprocess.check_output("ps -eo pid,comm,user,%cpu,%mem --sort=-%cpu --no-headers | head -40", shell=True, text=True)
             for line in ps_output.strip().split('\n'):
