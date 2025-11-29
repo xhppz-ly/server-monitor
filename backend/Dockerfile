@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y sshpass && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 
-# 关键修改：添加了 -i https://pypi.tuna.tsinghua.edu.cn/simple
+# 添加了 -i https://pypi.tuna.tsinghua.edu.cn/simple
 # 这会强制 pip 从清华大学的镜像站下载，速度非常快
 RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir -r requirements.txt
 
