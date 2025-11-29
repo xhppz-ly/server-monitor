@@ -6,6 +6,7 @@
 ![Docker](https://img.shields.io/badge/docker-ready-green.svg)
 ![Python](https://img.shields.io/badge/backend-Flask-yellow.svg)
 ![Vue](https://img.shields.io/badge/frontend-Vue3-success.svg)
+![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
 
 ## 📖 项目简介
 
@@ -16,19 +17,24 @@
 ## ✨ 核心特性
 
 ### 🚀 极速与实时
-* **SSE 实时流**：采用 HTTP 长连接 (Server-Sent Events) 技术，实现 **秒级** 数据即时推送，告别传统轮询的延迟感。
+* **SSE 实时流**：采用 SSE (Server-Sent Events) 技术，实现 **秒级** 数据即时推送，告别传统轮询的延迟感。
 * **无代理模式 (Agentless)**：无需在被监控服务器上安装任何插件或软件，只需 Python3 环境，通过 SSH 协议自动采集。
 
 ### 📊 全维度监控
 * **基础资源**：实时 CPU 利用率、内存/Swap 使用量、磁盘空间、系统负载 (Load Average 1/5/15)。
 * **网络流量**：实时上传/下载速率监测，带有动态波形图展示。
-* **进程透视**：**Top 40 进程监控**，实时查看占用 CPU/内存 最高的进程列表，并在前端进行排序分析。
+* **进程透视**：**Top 15 进程监控**，实时查看占用 CPU/内存 最高的进程列表，并在前端进行排序分析。
 * **健康告警**：内置阈值检测，自动记录 CPU、内存、磁盘过载事件，并生成告警日志。
+* **交互优化**：
+  - 内置 **UTC+8 北京时间** 实时时钟。
+  - 密码输入框支持“显示/隐藏”切换，提升操作体验。
+  - 状态指示灯实时轮询，精准反馈主机在线状态。
 
 ### 🛡️ 安全与稳定
 * **凭证加密**：所有的 SSH 密码均使用 **Fernet 对称加密算法** 存储在本地 SQLite 数据库中，确保敏感信息不泄露。
 * **连接风暴防护**：内置连接池管理与断线重连冷却机制，防止因网络波动导致的 SSH 连接风暴。
 * **数据持久化**：通过 Docker Volume 挂载，确保数据库文件在容器重启后依然保留。
+* **运维工具箱**：内置健康检查与自动化备份脚本，保障系统长期稳定运行。
 
 ## 🛠️ 技术栈
 
@@ -40,6 +46,8 @@
 | **Backend** | Python 3.9 + Flask | 轻量级 Web 服务框架 |
 | | Paramiko | Python SSHv2 协议实现库 |
 | | SQLite | 嵌入式关系型数据库，无需额外部署 |
+| **DevOps** | Docker Compose | 容器编排与环境隔离 |
+| | Shell Scripts | 自动化运维与灾备 |
 
 ## 🐳 快速部署
 
@@ -65,7 +73,7 @@
     > 系统会自动构建 `monitor-backend` 和 `monitor-frontend` 两个容器。
 
 3.  **访问面板**
-    打开浏览器访问：`http://localhost:8080`
+    打开浏览器访问：`http://localhost:8080`(或服务器IP:8080)
 
 ## 🕹️ 使用指南
 
@@ -84,20 +92,24 @@
 ### 3. 系统维护
 * **数据位置**：数据库文件存储在当前目录的 `./backend_data/monitor_v2.db`。
 * **日志查看**：如遇连接问题，可使用 `docker-compose logs -f backend` 查看后端日志。
+* **系统健康检查**:运行此脚本可快速诊断容器状态及 Web 服务可用性：`./health_check.sh`
+* **数据库冷备份**:运行此脚本可备份核心数据库，支持自动清理 7 天前的旧备份：`./backup_db.sh`,备份文件将生成在 backend_data/backups/ 目录下
 
 ## 📂 目录结构
 
 ```text
-.
-├── docker-compose.yml      # 容器编排配置
-├── backend/                # 后端服务
-│   ├── app.py              # Flask 主程序 (API & 调度)
-│   ├── stream.py           # SSE 实时流处理模块
-│   ├── monitoring_agent.py # 被控端 Python 采集脚本
-│   ├── Dockerfile          # 后端镜像构建
-│   └── requirements.txt    # Python 依赖
-├── frontend/               # 前端服务
-│   ├── index.html          # Vue3 单页应用源码
-│   ├── nginx.conf          # Nginx 反代配置
+server-monitor/
+├── backend/                 # 后端服务核心
+│   ├── app.py               # Flask 主程序 (API & 调度逻辑)
+│   ├── monitoring_agent.py  # [核心] 被控端 Python 采集脚本
+│   ├── stream.py            # SSE 实时流处理模块
+│   └── Dockerfile           # 后端镜像构建
+├── frontend/                # 前端可视化大屏
+│   ├── index.html           # Vue3 单页应用源码
+│   ├── nginx.conf           # Nginx 反代配置
 │   └── Dockerfile          # 前端镜像构建
-└── backend_data/           # (自动生成) 数据持久化目录
+├── backend_data/            # [持久化] 数据库与密钥存储 (已配置 .gitignore)
+├── docker-compose.yml       # 容器编排配置
+├── health_check.sh          # [运维] 系统健康检查脚本
+├── backup_db.sh             # [运维] 数据库自动备份脚本
+└── README.md                # 项目说明文档
