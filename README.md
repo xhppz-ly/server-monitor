@@ -14,6 +14,11 @@
 
 系统包含一个基于 **Vue 3 + ECharts** 的科幻风格可视化大屏，以及一个基于 **Flask + SQLite** 的高性能后端。得益于 **Server-Sent Events (SSE)** 技术，它可以实现毫秒级的实时数据流推送，让你像观看电影一样掌控服务器脉搏。
 
+## 📺 系统截图
+<img width="1919" height="960" alt="image" src="https://github.com/user-attachments/assets/75d3ec20-30f3-4971-99f9-1b42f2d98ab1" />
+<img width="1919" height="961" alt="image" src="https://github.com/user-attachments/assets/fe0871e7-06e4-4112-bbba-a26371b1c209" />
+<img width="1919" height="961" alt="屏幕截图 2025-11-30 150105" src="https://github.com/user-attachments/assets/b6750ad5-e1b4-4ac0-9878-372ef3cb9586" />
+
 ## ✨ 核心特性
 
 ### 🚀 极速与实时
@@ -107,9 +112,10 @@ server-monitor/
 ├── frontend/                # 前端可视化大屏
 │   ├── index.html           # Vue3 单页应用源码
 │   ├── nginx.conf           # Nginx 反代配置
-│   └── Dockerfile          # 前端镜像构建
+│   └── Dockerfile           # 前端镜像构建
 ├── backend_data/            # [持久化] 数据库与密钥存储 (已配置 .gitignore)
 ├── docker-compose.yml       # 容器编排配置
 ├── health_check.sh          # [运维] 系统健康检查脚本
 ├── backup_db.sh             # [运维] 数据库自动备份脚本
+
 └── README.md                # 项目说明文档
